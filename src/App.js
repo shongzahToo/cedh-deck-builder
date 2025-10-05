@@ -11,7 +11,7 @@ const TIME_PERIODS = [
   "THREE_MONTHS",
 ];
 
-async function fetchCommanderStats({ name, eventSize, timePeriod }) {
+const fetchCommanderStats = async ({ name, eventSize, timePeriod }) => {
   const query = `
     query CommanderCards($name: String!, $eventSize: Int!) {
       commander(name: $name) {
@@ -44,7 +44,7 @@ async function fetchCommanderStats({ name, eventSize, timePeriod }) {
   return json.data?.commander?.entries?.edges ?? [];
 }
 
-function computeCardScores(edges) {
+const computeCardScores = (edges) => {
   const tally = new Map();
   edges.forEach((n) => {
     const node = n.node;
@@ -60,7 +60,10 @@ function computeCardScores(edges) {
   return Array.from(tally, ([name, { score, preview }]) => ({ name, score, preview })).sort((a, b) => b.score - a.score);
 }
 
-function useCommanderStats() {
+export default function App() {
+  const [form, setForm] = useState({ name: "", eventSize: "", timePeriod: "ONE_MONTH" });
+  const [copyCount, setCopyCount] = useState(99);
+  const [hover, setHover] = useState({ visible: false, url: "", x: 0, y: 0 });
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -84,16 +87,6 @@ function useCommanderStats() {
     setError("");
   }, []);
 
-  return { edges, loading, error, analyze, reset };
-}
-
-export default function App() {
-  const [form, setForm] = useState({ name: "", eventSize: "", timePeriod: "ONE_MONTH" });
-  const [copyCount, setCopyCount] = useState(99);
-  const [hover, setHover] = useState({ visible: false, url: "", x: 0, y: 0 });
-
-  const { edges, loading, error, analyze, reset } = useCommanderStats();
-
   const scores = useMemo(() => computeCardScores(edges), [edges]);
 
   const updateForm = (k) => (e) => {
@@ -107,7 +100,7 @@ export default function App() {
   const onAnalyze = (e) => {
     e?.preventDefault?.();
     analyze({
-      name: form.name.trim(),
+      name: document.getElementById("cardName").value.trim(),
       eventSize: Math.max(1, Number(form.eventSize) || 1),
       timePeriod: form.timePeriod,
     });
@@ -116,8 +109,8 @@ export default function App() {
   const copyToClipboard = async () => {
     const n = Math.max(1, Math.min(scores.length, Number(copyCount) || 1));
     const list = scores.slice(0, n).map((c) => `1 ${c.name}`).join("\n");
-    const finalText = `${list}\n\n1 ${form.name.trim()}`;
-    try { await navigator.clipboard.writeText(finalText); } catch {}
+    const finalText = `${list}\n\n1 ${document.getElementById("cardName").value.trim()}`;
+    try { await navigator.clipboard.writeText(finalText); } catch { }
   };
 
   return (
@@ -137,11 +130,9 @@ export default function App() {
 
         <form className="search" onSubmit={onAnalyze}>
           <input
-            onChange={updateForm("name")}
             placeholder="Type a commander name…"
             className="input"
             id="cardName"
-            value={form.name}
           />
 
           <input
@@ -215,8 +206,8 @@ export default function App() {
                 <li
                   key={card.name}
                   className="plain-item"
-                  onMouseEnter={() => setHover((h) => ({...h, visible: true, url: card.preview}))}
-                  onMouseLeave={() => setHover(() => ({visible: false}))}
+                  onMouseEnter={() => setHover((h) => ({ ...h, visible: true, url: card.preview }))}
+                  onMouseLeave={() => setHover(() => ({ visible: false }))}
                 >
                   <span className="rank">#{i + 1}</span>
                   <span className="name">{card.name}</span>
