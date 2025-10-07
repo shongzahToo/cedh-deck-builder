@@ -11,12 +11,13 @@ const TIME_PERIODS = [
   "THREE_MONTHS",
 ];
 
-const fetchCommanderStats = async ({ name, eventSize, timePeriod }) => {
+const fetchCommanderStats = async ({ name, eventSize, timePeriod, eventQuantity }) => {
   const query = `
     query CommanderCards($name: String!, $eventSize: Int!) {
       commander(name: $name) {
         entries(
           sortBy: TOP
+          first: ${eventQuantity}
           filters: { minEventSize: $eventSize, timePeriod: ${timePeriod} }
         ) {
           edges {
@@ -50,14 +51,14 @@ const computeCardScores = (edges) => {
     const node = n.node;
     const size = node?.tournament?.size ?? 0;
     const standing = node?.standing ?? size;
-    const performance = size > 0 ? 1 - standing / size : 0;
+    const performance = size > 0 ? size - standing : 0;
     (node?.maindeck ?? []).forEach(c => {
       const name = c?.name;
-      const prev = tally.get(name) || { score: 0, preview: c.cardPreviewImageUrl || "" };
-      tally.set(name, { score: prev.score + performance, preview: prev.preview || c.cardPreviewImageUrl || "" });
+      const prev = tally.get(name) || { score: 0, preview: c.cardPreviewImageUrl, occurances: 0 || "" };
+      tally.set(name, { score: prev.score + performance, preview: prev.preview, occurances: Number(prev.occurances) + 1 || c.cardPreviewImageUrl || "" });
     })
   })
-  return Array.from(tally, ([name, { score, preview }]) => ({ name, score, preview })).sort((a, b) => b.score - a.score);
+  return Array.from(tally, ([name, { score, preview, occurances }]) => ({ name, score, preview, occurances })).sort((a, b) => b.score - a.score);
 }
 
 export default function App() {
@@ -103,6 +104,7 @@ export default function App() {
       name: document.getElementById("cardName").value.trim(),
       eventSize: Math.max(1, Number(form.eventSize) || 1),
       timePeriod: form.timePeriod,
+      eventQuantity: form.eventQuantity,
     });
   };
 
@@ -141,10 +143,22 @@ export default function App() {
             list="event-sizes"
             value={form.eventSize}
             onChange={updateForm("eventSize")}
-            placeholder="Type a minimum tournament size here..."
+            placeholder="Minimum tournament size..."
             className="input"
             title="Minimum event size"
             id="eventSize"
+          />
+
+          <input
+            type="number"
+            step={1}
+            list="number-of-events"
+            value={form.eventQuantity}
+            onChange={updateForm("eventQuantity")}
+            placeholder="Maximum number of tournaments..."
+            className="input"
+            title="Maximum events"
+            id="eventQuantity"
           />
 
           <select
@@ -202,6 +216,12 @@ export default function App() {
             <div className="muted">No results yet. Search for a commander above.</div>
           ) : (
             <ol className="plain-list">
+              <li className="plain-item">
+                <span className="rank">Rank</span>
+                <span className="name">Name</span>
+                <span className="occurances">Inclusions in Top {edges.length} decks</span>
+                <span className="score">Card Score</span>
+              </li>
               {scores.map((card, i) => (
                 <li
                   key={card.name}
@@ -211,9 +231,11 @@ export default function App() {
                 >
                   <span className="rank">#{i + 1}</span>
                   <span className="name">{card.name}</span>
-                  <span className="score">{(card.score).toFixed(3)}</span>
+                  <span className="occurances">{(card.occurances)}</span>
+                  <span className="score">{(card.score)}</span>
                 </li>
               ))}
+              {console.log(scores)}
             </ol>
           )}
         </section>

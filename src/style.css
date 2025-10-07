@@ -110,7 +110,8 @@ select {
 .muted,
 .footer,
 .plain-item .rank,
-.plain-item .score {
+.plain-item .score,
+.plain-item .occurances {
     color: var(--muted);
 }
 
@@ -149,13 +150,17 @@ select {
 
 .plain-item {
     display: grid;
-    grid-template-columns: 56px 1fr 64px;
+    grid-template-columns: 56px 1fr 96px 64px;
     align-items: center;
     gap: 8px;
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: #0a1222;
+}
+
+.occurances {
+    text-align: center;
 }
 
 .plain-item .rank,
